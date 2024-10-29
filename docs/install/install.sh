@@ -223,9 +223,9 @@ echo "[6] Done. "
 echo "[7] 下载并启动 nginx .... "
 # 修改的地方， 需要把前端打包成一个tar.gz文件。
 cd $rootDir/nginx/html
-wget https://gitee.com/jeequan/jeepay-ui/releases/download/v1.10.0/html.tar.gz
-# wget https://github.com/soulmatejava/jeepay-ui/archive/refs/tags/v1.0.0.tar.gz
-tar -vxf html.tar.gz
+# wget https://gitee.com/jeequan/jeepay-ui/releases/download/v1.10.0/html.tar.gz
+wget https://github.com/soulmatejava/jeepay-ui/archive/refs/tags/v1.0.0.tar.gz
+tar -vxf v1.0.0.tar.gz
 
 # 将配置文件复制到对应的映射目录下
 cd $sourcesInstallPath && cp ./include/nginx.conf $rootDir/nginx/conf/nginx.conf
