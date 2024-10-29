@@ -22,7 +22,9 @@ fi
 # 检查 配置文件是否存在
 if ! [ -f "./config.sh" ]; then
     echo '下载默认配置文件。'
-    wget -O config.sh https://gitee.com/jeequan/jeepay/raw/master/docs/install/config.sh
+    # 修改的点
+    # wget -O config.sh https://gitee.com/jeequan/jeepay/raw/master/docs/install/config.sh
+    wget -O config.sh https://raw.githubusercontent.com/soulmatejava/jeepay-master/refs/heads/master/docs/install/config.sh
 fi
 
 #引入config
@@ -91,7 +93,10 @@ echo "[1] Done. "
 # 第2步：拉取项目源代码  || 拉取脚本文件
 echo "[2] 拉取项目源代码文件.... "
 cd $rootDir/sources
-git clone https://gitee.com/jeequan/jeepay.git
+
+# 修改的第二个地方
+# git clone https://gitee.com/jeequan/jeepay.git
+git clone https://github.com/soulmatejava/jeepay-master.git
 # cd jeepay && git checkout -b dev origin/dev # 切换到dev分支。
 echo "[2] Done. "
 
@@ -138,6 +143,7 @@ do
   fi
 done
 
+# 修改的点， 如果有改动的数据，则替换init.sql文件
 echo "[3] 初始化数据导入 ...... "
 # 创建数据库  && 导入数据
 echo "CREATE DATABASE jeepaydb DEFAULT CHARACTER SET utf8mb4" | docker exec -i mysql8 mysql -uroot -p$mysql_pwd
@@ -215,9 +221,10 @@ echo "[6] Done. "
 
 
 echo "[7] 下载并启动 nginx .... "
-
+# 修改的地方， 需要把前端打包成一个tar.gz文件。
 cd $rootDir/nginx/html
-wget https://gitee.com/jeequan/jeepay-ui/releases/download/v1.10.0/html.tar.gz
+# wget https://gitee.com/jeequan/jeepay-ui/releases/download/v1.10.0/html.tar.gz
+wget https://github.com/soulmatejava/jeepay-ui/archive/refs/tags/v1.0.0.tar.gz
 tar -vxf html.tar.gz
 
 # 将配置文件复制到对应的映射目录下
