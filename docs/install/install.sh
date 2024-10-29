@@ -91,7 +91,7 @@ echo "[1] Done. "
 # 第2步：拉取项目源代码  || 拉取脚本文件
 echo "[2] 拉取项目源代码文件.... "
 cd $rootDir/sources
-git clone https://github.com/soulmatejava/jeepay-master.git
+git clone https://gitee.com/jeequan/jeepay.git
 # cd jeepay && git checkout -b dev origin/dev # 切换到dev分支。
 echo "[2] Done. "
 
