@@ -61,7 +61,11 @@ public class AlipayPayOrderQueryService implements IPayOrderQueryService {
         String result = resp.getTradeStatus();
 
         if("TRADE_SUCCESS".equals(result)) {
+
+
             return ChannelRetMsg.confirmSuccess(resp.getTradeNo());  //支付成功
+
+
         }else if("WAIT_BUYER_PAY".equals(result)) {
             return ChannelRetMsg.waiting(); //支付中
         }

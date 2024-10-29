@@ -19,6 +19,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.jeequan.jeepay.JeepayClient;
+import com.jeequan.jeepay.components.mq.model.PayOrderCallbackPankouMQ;
+import com.jeequan.jeepay.components.mq.vender.IMQSender;
 import com.jeequan.jeepay.core.aop.MethodLog;
 import com.jeequan.jeepay.core.constants.ApiCodeEnum;
 import com.jeequan.jeepay.core.entity.MchApp;
@@ -27,6 +29,7 @@ import com.jeequan.jeepay.core.entity.PayWay;
 import com.jeequan.jeepay.core.exception.BizException;
 import com.jeequan.jeepay.core.model.ApiPageRes;
 import com.jeequan.jeepay.core.model.ApiRes;
+import com.jeequan.jeepay.core.model.security.JeeUserDetails;
 import com.jeequan.jeepay.core.utils.SeqKit;
 import com.jeequan.jeepay.exception.JeepayException;
 import com.jeequan.jeepay.mgr.ctrl.CommonCtrl;
@@ -66,6 +69,7 @@ public class PayOrderController extends CommonCtrl {
     @Autowired private PayWayService payWayService;
     @Autowired private SysConfigService sysConfigService;
     @Autowired private MchAppService mchAppService;
+    @Autowired private IMQSender mqSender;
 
     /**
      * @author: pangxiaoyu
@@ -195,6 +199,28 @@ public class PayOrderController extends CommonCtrl {
         } catch (JeepayException e) {
             throw new BizException(e.getMessage());
         }
+    }
+
+
+    @MethodLog(remark = "发起回调盘口")
+    @PreAuthorize("hasAuthority('ENT_PAY_ORDER_PANKOUURL')")
+    @GetMapping("/callbackPankou")
+    public ApiRes callbackPankou() {
+        String payOrderId = getValStringRequired("payOrderId");
+        PayOrder payOrder = payOrderService.getById(payOrderId);
+        if (payOrder == null) {
+            return ApiRes.fail(ApiCodeEnum.SYS_OPERATION_FAIL_SELETE);
+        }
+        //应用appid查询
+        MchApp mchApp = mchAppService.selectById(payOrder.getAppId());
+        if (mchApp == null) {
+            return ApiRes.fail(ApiCodeEnum.SYS_OPERATION_FAIL_SELETE);
+        }
+        //获取当前操作用户信息
+        JeeUserDetails currentUser = getCurrentUser();
+        //丢到mq中做异步处理
+        mqSender.send(PayOrderCallbackPankouMQ.build(payOrder, mchApp,currentUser.getSysUser().getLoginUsername()));
+        return ApiRes.ok();
     }
 
 }

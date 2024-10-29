@@ -19,6 +19,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.jeequan.jeepay.JeepayClient;
+import com.jeequan.jeepay.components.mq.model.PayOrderCallbackPankouMQ;
+import com.jeequan.jeepay.components.mq.vender.IMQSender;
 import com.jeequan.jeepay.core.aop.MethodLog;
 import com.jeequan.jeepay.core.constants.ApiCodeEnum;
 import com.jeequan.jeepay.core.entity.MchApp;
@@ -27,6 +29,7 @@ import com.jeequan.jeepay.core.entity.PayWay;
 import com.jeequan.jeepay.core.exception.BizException;
 import com.jeequan.jeepay.core.model.ApiPageRes;
 import com.jeequan.jeepay.core.model.ApiRes;
+import com.jeequan.jeepay.core.model.security.JeeUserDetails;
 import com.jeequan.jeepay.core.utils.SeqKit;
 import com.jeequan.jeepay.exception.JeepayException;
 import com.jeequan.jeepay.mch.ctrl.CommonCtrl;
@@ -63,16 +66,22 @@ import java.util.Map;
 @RequestMapping("/api/payOrder")
 public class PayOrderController extends CommonCtrl {
 
-    @Autowired private PayOrderService payOrderService;
-    @Autowired private PayWayService payWayService;
-    @Autowired private MchAppService mchAppService;
-    @Autowired private SysConfigService sysConfigService;
+    @Autowired
+    private PayOrderService payOrderService;
+    @Autowired
+    private PayWayService payWayService;
+    @Autowired
+    private MchAppService mchAppService;
+    @Autowired
+    private SysConfigService sysConfigService;
+    @Autowired
+    private IMQSender mqSender;
 
     /**
      * @Author: ZhuXiao
      * @Description: 订单信息列表
      * @Date: 10:43 2021/5/13
-    */
+     */
     @ApiOperation("支付订单信息列表")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "iToken", value = "用户身份凭证", required = true, paramType = "header"),
@@ -103,14 +112,14 @@ public class PayOrderController extends CommonCtrl {
         Map<String, String> payWayNameMap = new HashMap<>();
         List<PayWay> payWayList = payWayService.list();
         if (!CollectionUtils.isEmpty(payWayList)) {
-            for (PayWay payWay:payWayList) {
+            for (PayWay payWay : payWayList) {
                 payWayNameMap.put(payWay.getWayCode(), payWay.getWayName());
             }
-            for (PayOrder order:pages.getRecords()) {
+            for (PayOrder order : pages.getRecords()) {
                 // 存入支付方式名称
                 if (StringUtils.isNotEmpty(payWayNameMap.get(order.getWayCode()))) {
                     order.addExt("wayName", payWayNameMap.get(order.getWayCode()));
-                }else {
+                } else {
                     order.addExt("wayName", order.getWayCode());
                 }
             }
@@ -123,7 +132,7 @@ public class PayOrderController extends CommonCtrl {
      * @Author: ZhuXiao
      * @Description: 支付订单信息
      * @Date: 10:43 2021/5/13
-    */
+     */
     @ApiOperation("支付订单信息详情")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "iToken", value = "用户身份凭证", required = true, paramType = "header"),
@@ -145,6 +154,7 @@ public class PayOrderController extends CommonCtrl {
 
     /**
      * 发起订单退款
+     *
      * @author terrfly
      * @site https://www.jeequan.com
      * @date 2021/6/17 16:38
@@ -168,11 +178,11 @@ public class PayOrderController extends CommonCtrl {
             return ApiRes.fail(ApiCodeEnum.SYS_OPERATION_FAIL_SELETE);
         }
 
-        if(payOrder.getState() != PayOrder.STATE_SUCCESS){
+        if (payOrder.getState() != PayOrder.STATE_SUCCESS) {
             throw new BizException("订单状态不正确");
         }
 
-        if(payOrder.getRefundAmount() + refundAmount > payOrder.getAmount()){
+        if (payOrder.getRefundAmount() + refundAmount > payOrder.getAmount()) {
             throw new BizException("退款金额超过订单可退款金额！");
         }
 
@@ -195,7 +205,7 @@ public class PayOrderController extends CommonCtrl {
 
         try {
             RefundOrderCreateResponse response = jeepayClient.execute(request);
-            if(response.getCode() != 0){
+            if (response.getCode() != 0) {
                 throw new BizException(response.getMsg());
             }
             return ApiRes.ok(response.get());
@@ -204,4 +214,33 @@ public class PayOrderController extends CommonCtrl {
         }
     }
 
+    @ApiOperation("回调盘口地址")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "iToken", value = "用户身份凭证", required = true, paramType = "header"),
+            @ApiImplicitParam(name = "payOrderId", value = "支付订单号", required = true)
+    })
+    @MethodLog(remark = "发起回调盘口")
+    @PreAuthorize("hasAuthority('ENT_PAY_ORDER_PANKOUURL')")
+    @GetMapping("/callbackPankou")
+    public ApiRes callbackPankou() {
+        String payOrderId = getValStringRequired("payOrderId");
+        PayOrder payOrder = payOrderService.getById(payOrderId);
+        if (payOrder == null) {
+            return ApiRes.fail(ApiCodeEnum.SYS_OPERATION_FAIL_SELETE);
+        }
+        //商户验证
+        if (!payOrder.getMchNo().equals(getCurrentMchNo())) {
+            return ApiRes.fail(ApiCodeEnum.SYS_PERMISSION_ERROR);
+        }
+        //应用appid查询
+        MchApp mchApp = mchAppService.selectById(payOrder.getAppId());
+        if (mchApp == null) {
+            return ApiRes.fail(ApiCodeEnum.SYS_OPERATION_FAIL_SELETE);
+        }
+        //获取当前操作用户信息
+        JeeUserDetails currentUser = getCurrentUser();
+        //丢到mq中做异步处理
+        mqSender.send(PayOrderCallbackPankouMQ.build(payOrder, mchApp,currentUser.getSysUser().getLoginUsername()));
+        return ApiRes.ok();
+    }
 }

@@ -87,6 +87,7 @@ public class MchAppController extends CommonCtrl {
             @ApiImplicitParam(name = "appName", value = "应用名称", required = true),
             @ApiImplicitParam(name = "appSecret", value = "应用私钥", required = true),
             @ApiImplicitParam(name = "mchNo", value = "商户号", required = true),
+            @ApiImplicitParam(name = "pankouUrl", value = "盘口回调地址", required = true),
             @ApiImplicitParam(name = "remark", value = "备注"),
             @ApiImplicitParam(name = "state", value = "状态: 0-停用, 1-启用", dataType = "Byte")
     })
@@ -141,6 +142,7 @@ public class MchAppController extends CommonCtrl {
             @ApiImplicitParam(name = "appName", value = "应用名称", required = true),
             @ApiImplicitParam(name = "appSecret", value = "应用私钥", required = true),
             @ApiImplicitParam(name = "mchNo", value = "商户号", required = true),
+            @ApiImplicitParam(name = "pankouUrl", value = "盘口回调地址", required = true),
             @ApiImplicitParam(name = "remark", value = "备注"),
             @ApiImplicitParam(name = "state", value = "状态: 0-停用, 1-启用", dataType = "Byte")
     })

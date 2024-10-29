@@ -68,6 +68,11 @@ public class MchApp extends BaseModel {
     private String appSecret;
 
     /**
+     * 盘口回调地址
+     */
+    @ApiModelProperty(value = "盘口回调地址")
+    private String pankouUrl;
+    /**
      * 备注
      */
     @ApiModelProperty(value = "备注")

@@ -60,7 +60,7 @@ import java.math.BigDecimal;
  */
 @Api(tags = "分账管理（收款账号）")
 @RestController
-@RequestMapping("api/divisionReceivers")
+	@RequestMapping("api/divisionReceivers")
 public class MchDivisionReceiverController extends CommonCtrl {
 
 	@Autowired private MchDivisionReceiverService mchDivisionReceiverService;
